@@ -36,3 +36,9 @@ After confirming the connection, enable writes for a controlled pilot. Test save
 - Reporting/export is available to Managers and Administrators; reopening remains Administrator-only. Agree reminder channel and operational ownership; no reminders run.
 - Review direct SharePoint access, retention, recovery, audit requirements and production monitoring. There is no separate reopen audit log in this version; SharePoint list version history should be configured appropriately.
 - Large reports currently load list records with pagination; Graph throttling produces a retryable user error, not hidden partial totals. No SQL backend.
+
+## Automatic Microsoft sign-in
+
+The client now makes one `ssoSilent` attempt on page load when there is no cached account, no explicit sign-out marker, and no ambiguous cached accounts. Failure leaves the ordinary sign-in button available; interactive sign-in can satisfy MFA or account selection. Signing out suppresses automatic sign-in in that tab until manual sign-in. Tokens still go through the same server verifier and Staff Register authorization checks.
+
+The existing registered root redirect URL doubles as the MSAL v5 silent iframe bridge. `main.jsx` detects the iframe before importing LiveApp, and only runs `broadcastResponseToMainFrame` there; it does not render the app or call the API. Same-origin framing is allowed for this bridge (`X-Frame-Options: SAMEORIGIN`), while other origins cannot frame it. No new redirect URL registration is needed. Silent SSO depends on the staff device/browser session, cookie policy and Conditional Access. Local tests use mocked accounts and simulated network failure, not a real staff Microsoft session; verify on a managed Edge laptop.

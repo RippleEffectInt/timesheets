@@ -3,6 +3,7 @@ import {
   PublicClientApplication,
   InteractionRequiredAuthError,
 } from "@azure/msal-browser";
+import { establishSession, SIGNED_OUT } from "./signin.js";
 import { App } from "./App.jsx";
 const tenant = "813ee105-1291-48e6-9381-e535253a68be";
 const scopes = ["api://54b64b90-4ca1-463b-8290-8b285d5df68c/access_as_user"];
@@ -14,17 +15,20 @@ const client = new PublicClientApplication({
     postLogoutRedirectUri: window.location.origin + "/",
   },
   cache: { cacheLocation: "sessionStorage" },
+  system: { iframeHashTimeout: 10000 },
 });
 const initialized = client
   .initialize()
   .then(() => client.handleRedirectPromise())
-  .then((result) => {
-    if (result?.account) client.setActiveAccount(result.account);
-    else {
-      const accounts = client.getAllAccounts();
-      if (accounts.length === 1) client.setActiveAccount(accounts[0]);
+  .then(async (result) => {
+    if (result?.account) {
+      sessionStorage.removeItem(SIGNED_OUT);
+      client.setActiveAccount(result.account);
+      return;
     }
+    await establishSession(client, scopes, sessionStorage);
   });
+
 export function LiveApp() {
   const [context, setContext] = useState(null),
     [error, setError] = useState(""),
@@ -84,7 +88,7 @@ export function LiveApp() {
         reopen: (_principal, key, revision) =>
           api("reopen", "POST", { key, revision }),
       });
-      setContext({ ...data, logout: () => client.logoutRedirect() });
+      setContext({ ...data, logout: () => { sessionStorage.setItem(SIGNED_OUT, "true"); return client.logoutRedirect(); } });
     }
     start().catch((e) => active && setError(e.message));
     return () => {
@@ -110,13 +114,12 @@ export function LiveApp() {
         )}
         <button
           disabled={!ready}
-          onClick={() =>
-            client
-              .loginRedirect({ scopes, prompt: "select_account" })
-              .catch((e) => setError(e.message))
-          }
+          onClick={() => {
+            sessionStorage.removeItem(SIGNED_OUT);
+            client.loginRedirect({scopes, prompt:"select_account"}).catch(e=>setError(e.message));
+          }}
         >
-          {ready ? "Sign in with Microsoft" : "Preparing sign-in…"}
+          {ready ? "Sign in with Microsoft" : "Signing in with Microsoft…"}
         </button>
         {ready && !error && client.getActiveAccount() && (
           <p>Checking your staff registration and SharePoint connection…</p>
