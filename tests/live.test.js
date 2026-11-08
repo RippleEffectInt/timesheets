@@ -110,7 +110,7 @@ test("choice No is false; identity, active dates and role policies fail closed",
   assert.deepEqual(
     resolvePrincipal({ oid, tid: TENANT }, [{ ...person, access: "Manager" }])
       .permissions,
-    [],
+    ["report:read"],
   );
   assert.equal(
     resolvePrincipal({ oid, tid: TENANT }, [
@@ -514,4 +514,12 @@ test('platform Authorization cannot authenticate; app header still requires a si
  await assert.rejects(()=>authenticate(new Request('https://example.invalid',{headers:{Authorization:`Bearer ${token}`}}),publicKey),{status:401});
  assert.deepEqual(await authenticate(new Request('https://example.invalid',{headers:{Authorization:'Bearer platform-token','X-Timesheets-Authorization':`Bearer ${token}`}}),publicKey),{oid,tid:TENANT});
  await assert.rejects(()=>authenticate(new Request('https://example.invalid',{headers:{Authorization:`Bearer ${token}`,'X-Timesheets-Authorization':'Bearer forged'}}),publicKey),{status:401});
+});
+
+test('Manager is denied reopen by the API before any record access or write',async()=>{
+ let calls=0;
+ const graph={all:async(list)=>{calls++;assert.equal(list,'staff');return [{fields:{...fields,field_8:'Manager'}}];},request:async()=>assert.fail('No writes allowed')};
+ const handler=createLiveHandler({graph,verify:async()=>({oid,tid:TENANT}),env:{TIMESHEETS_WRITE_ENABLED:'true'}});
+ const result=await handler(new Request('https://example.invalid/api/reopen',{method:'POST',body:JSON.stringify({key:'other:2026-11',revision:1})}));
+ assert.equal(result.status,403);assert.equal(calls,1);
 });

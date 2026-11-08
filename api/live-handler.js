@@ -36,8 +36,10 @@ export function createLiveHandler({
         return response(404, { error: "Route not found." });
       const staff = (await graph.all("staff")).map(mapStaff);
       const principal = resolvePrincipal(identity, staff);
-      const admin = principal.permissions.includes("report:read");
-      if ((path === "/api/reports" || path === "/api/reopen") && !admin)
+      const canReport = principal.permissions.includes("report:read");
+      if (path === "/api/reports" && !canReport)
+        throw new HttpError(403, "Reporting permission required.");
+      if (path === "/api/reopen" && !principal.permissions.includes("timesheet:reopen"))
         throw new HttpError(403, "Administrator permission required.");
       const writeEnabled = env.TIMESHEETS_WRITE_ENABLED === "true";
       if (["PUT", "POST"].includes(request.method) && !writeEnabled)
@@ -80,7 +82,7 @@ export function createLiveHandler({
       if (path === "/api/bootstrap")
         return response(200, {
           principal,
-          staff: (admin
+          staff: (canReport
             ? staff
             : staff.filter((s) => s.id === principal.staffId)
           ).map(publicStaff),

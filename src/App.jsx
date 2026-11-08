@@ -34,9 +34,9 @@ export function App({ service: suppliedService, liveContext }) {
     liveContext?.principal.staffId ?? staff[0].id,
   );
   const [role, setRole] = useState(
-    liveContext?.principal.permissions.includes("report:read")
+    liveContext?.principal.permissions.includes("timesheet:reopen")
       ? "operator"
-      : "staff",
+      : liveContext?.principal.permissions.includes("report:read") ? "reporter" : "staff",
   );
   const [page, setPage] = useState("entry");
   const [month, setMonth] = useState(
@@ -296,7 +296,7 @@ export function App({ service: suppliedService, liveContext }) {
         </button>
         <span>
           {liveContext
-            ? "Reports and reopening: Administrators only"
+            ? "Reports: Managers and Administrators · Reopening: Administrators only"
             : "Permission policy awaits agreement"}
         </span>
       </nav>
@@ -750,7 +750,7 @@ export function App({ service: suppliedService, liveContext }) {
                 )}
               </div>
             </section>
-            {role === "operator" && (
+            {principal.permissions.includes("timesheet:reopen") && (
               <section className="card">
                 <h2>
                   {liveContext

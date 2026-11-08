@@ -241,3 +241,17 @@ test("live financial-year selector keeps July–June period when month changes",
   );
   cleanup();
 });
+
+test('Manager can open reporting and both exports but has no reopen controls',async()=>{
+ const service=createService(new MemoryRepository(seedRecords()),staff,projects);
+ render(React.createElement(App,{service,liveContext:{staff,projects,principal:{staffId:staff[0].id,authenticated:true,permissions:['report:read']},writeEnabled:true,financialYears:['26/27','27/28'],logout:()=>{}}}));
+ await screen.findByLabelText('YEELD monthly notes');
+ assert.equal(screen.getByRole('button',{name:'Save draft'}).disabled,false);
+ fireEvent.click(screen.getByRole('button',{name:'Reporting',exact:true}));
+ await screen.findByRole('heading',{name:'Reporting'});
+ assert(screen.getByRole('button',{name:'Export YEELD only'}));
+ assert(screen.getByRole('button',{name:'Export XLSX'}));
+ assert.equal(screen.queryByRole('heading',{name:'Reopen submitted timesheets'}),null);
+ assert.equal(screen.queryByRole('button',{name:'Reopen',exact:true}),null);
+ cleanup();
+});

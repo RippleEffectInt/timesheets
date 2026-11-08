@@ -78,7 +78,7 @@ export function resolvePrincipal(
     permissions:
       person.access === "Administrator"
         ? ["report:read", "timesheet:reopen"]
-        : [],
+        : person.access === "Manager" ? ["report:read"] : [],
   };
 }
 export function mapProjects(items) {

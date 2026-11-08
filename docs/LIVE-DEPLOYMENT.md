@@ -15,7 +15,7 @@ Backend Production application settings (never VITE_ settings):
 
 The frontend registration is 9595233b-3183-4568-8604-a194530e7fb6. Register the SPA redirect `https://wonderful-sky-070a66510.3.azurestaticapps.net/`. Grant delegated scope `api://54b64b90-4ca1-463b-8290-8b285d5df68c/access_as_user` and consent. Both v1 and v2 access tokens are independently verified by signature, tenant-specific issuer, expiry/not-before, API audience, delegated scope and frontend client ID. An ID token cannot substitute for an API access token. The Functions anonymous trigger setting means verification is implemented inside every protected handler; it does not mean anonymous access to records.
 
-The API has Graph application `Lists.SelectedOperations.Selected`, with individual grants: Staff read, Projects read, Monthly Timesheets write. Do not add tenant-wide Sites.ReadWrite.All. The site and list IDs are explicit in `api/config.js`. The frontend never receives a Graph token or client secret. Server Graph credentials alone do not grant end users access: every request matches verified oid/tid to exactly one active Staff Register row. Staff and Managers access only their own record; Administrators additionally report/export all records and reopen submitted records. No manager approval workflow is implemented.
+The API has Graph application `Lists.SelectedOperations.Selected`, with individual grants: Staff read, Projects read, Monthly Timesheets write. Do not add tenant-wide Sites.ReadWrite.All. The site and list IDs are explicit in `api/config.js`. The frontend never receives a Graph token or client secret. Server Graph credentials alone do not grant end users access: every request matches verified oid/tid to exactly one active Staff Register row. Staff access only their own record. Managers can additionally report/export all records, but cannot reopen them. Administrators additionally reopen submitted records. All roles can edit only their own timesheet. No manager approval workflow is implemented.
 
 ## SharePoint requirements and first connection
 
@@ -33,6 +33,6 @@ After confirming the connection, enable writes for a controlled pilot. Test save
 
 - Actual tenant sign-in, real column types, Graph permissions, and real save round-trips require a user-led pilot; synthetic tests do not establish them.
 - The secret is temporary integration-pilot authentication. Replace it with a certificate or federated credential before general staff rollout, then rotate/revoke the pilot secret.
-- Confirm reporting/reopen policy remains Administrator-only; Managers currently have own-timesheet access only. Agree reminder channel and operational ownership; no reminders run.
+- Reporting/export is available to Managers and Administrators; reopening remains Administrator-only. Agree reminder channel and operational ownership; no reminders run.
 - Review direct SharePoint access, retention, recovery, audit requirements and production monitoring. There is no separate reopen audit log in this version; SharePoint list version history should be configured appropriately.
 - Large reports currently load list records with pagination; Graph throttling produces a retryable user error, not hidden partial totals. No SQL backend.
