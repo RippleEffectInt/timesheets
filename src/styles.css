@@ -504,3 +504,15 @@ footer {
   .period { width: 100%; }
   .period label { flex: 1 1 10rem; }
 }
+
+.brand-logo,
+.signin-logo {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.brand { flex-shrink: 0; }
+.brand span { margin-top: 0.5rem; }
+.signin-logo { width: 280px; margin-bottom: 1.5rem; }

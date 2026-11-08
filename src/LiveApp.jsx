@@ -96,7 +96,8 @@ export function LiveApp() {
   return (
     <main>
       <section className="card">
-        <h1>Ripple Effect Timesheets</h1>
+        <img className="signin-logo" src="/Banner%20logo%20sign%20in%20page.png" alt="Ripple Effect" />
+        <h1>Timesheets</h1>
         <p>
           Sign in with your Ripple Effect Microsoft account to access your
           timesheet.

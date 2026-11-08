@@ -275,7 +275,7 @@ export function App({ service: suppliedService, liveContext }) {
             changeContext(() => setPage("entry"));
           }}
         >
-          Ripple Effect<span>TIMESHEETS</span>
+          <img className="brand-logo" src="/Banner%20logo%20sign%20in%20page.png" alt="Ripple Effect" /><span>TIMESHEETS</span>
         </a>
         {liveContext ? (
           <div className="identity">
