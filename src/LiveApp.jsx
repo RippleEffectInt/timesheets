@@ -57,7 +57,7 @@ export function LiveApp() {
           method,
           cache: "no-store",
           headers: {
-            Authorization: `Bearer ${token.accessToken}`,
+            "X-Timesheets-Authorization": `Bearer ${token.accessToken}`,
             "Content-Type": "application/json",
           },
           ...(body ? { body: JSON.stringify(body) } : {}),

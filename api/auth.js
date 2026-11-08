@@ -3,7 +3,7 @@ import { createSigningKeys } from "./signing-keys.js";
 import { TENANT, CLIENT, SPA, HttpError } from "./config.js";
 const keys = createSigningKeys();
 export async function authenticate(request, keySet = keys) {
-  const authorization = request.headers.get("authorization") ?? "";
+  const authorization = request.headers.get("x-timesheets-authorization") ?? "";
   if (!/^Bearer [^\s]+$/i.test(authorization))
     throw new HttpError(401, "Sign in with your Ripple Effect account.");
   try {

@@ -49,7 +49,7 @@ test("JWT verifies signature, issuer, audience, tenant, client and delegated sco
       .setExpirationTime("2m")
       .sign(key);
     return new Request("https://example.invalid/api/bootstrap", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { "X-Timesheets-Authorization": `Bearer ${token}` },
     });
   }
   assert.deepEqual(await authenticate(await request(), publicKey), {
@@ -89,7 +89,7 @@ test("JWT verifies signature, issuer, audience, tenant, client and delegated sco
       () =>
         authenticate(
           new Request("https://example.invalid", {
-            headers: { Authorization: `Bearer ${t}` },
+            headers: { "X-Timesheets-Authorization": `Bearer ${t}` },
           }),
           publicKey,
         ),
@@ -392,7 +392,7 @@ test("v1 accepts both documented API audience forms and rejects other APIs", asy
       .setExpirationTime("2m")
       .sign(privateKey);
     const request = new Request("https://example.invalid", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { "X-Timesheets-Authorization": `Bearer ${token}` },
     });
     if (audience === "another-api")
       await assert.rejects(
@@ -438,7 +438,7 @@ test("remote Microsoft signing-key path verifies signatures and returns only saf
     .sign(privateKey);
   const req = () =>
     new Request("https://example.invalid", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { "X-Timesheets-Authorization": `Bearer ${token}` },
     });
   let calls = 0;
   const resolver = createSigningKeys(async (url, options) => {
@@ -500,10 +500,18 @@ test("remote Microsoft signing-key path verifies signatures and returns only saf
     () =>
       authenticate(
         new Request("https://example.invalid", {
-          headers: { Authorization: "Bearer not-a-jwt" },
+          headers: { "X-Timesheets-Authorization": "Bearer not-a-jwt" },
         }),
         resolver,
       ),
     (e) => e.message.includes("AUTH_TOKEN_FORMAT"),
   );
+});
+
+test('platform Authorization cannot authenticate; app header still requires a signed Microsoft token',async()=>{
+ const {privateKey,publicKey}=await generateKeyPair('RS256');
+ const token=await new SignJWT({oid,tid:TENANT,scp:'access_as_user',azp:SPA,ver:'2.0'}).setProtectedHeader({alg:'RS256'}).setIssuer(`https://login.microsoftonline.com/${TENANT}/v2.0`).setAudience(CLIENT).setIssuedAt().setNotBefore('0s').setExpirationTime('2m').sign(privateKey);
+ await assert.rejects(()=>authenticate(new Request('https://example.invalid',{headers:{Authorization:`Bearer ${token}`}}),publicKey),{status:401});
+ assert.deepEqual(await authenticate(new Request('https://example.invalid',{headers:{Authorization:'Bearer platform-token','X-Timesheets-Authorization':`Bearer ${token}`}}),publicKey),{oid,tid:TENANT});
+ await assert.rejects(()=>authenticate(new Request('https://example.invalid',{headers:{Authorization:`Bearer ${token}`,'X-Timesheets-Authorization':'Bearer forged'}}),publicKey),{status:401});
 });
