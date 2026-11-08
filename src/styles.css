@@ -461,3 +461,46 @@ footer {
 .timesheet-owner .selected-month {
   margin: 0;
 }
+
+/* Keep the owner and selected period on the same text baseline. */
+.timesheet-owner {
+  align-items: flex-end;
+}
+.timesheet-owner > div {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+.owner-name {
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+.timesheet-owner .selected-month {
+  flex: 0 0 auto;
+  line-height: 1.25;
+  padding-top: 0;
+  padding-bottom: 0;
+  white-space: nowrap;
+}
+.page-heading > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+.period {
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.period label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.period select {
+  min-height: 44px;
+  margin-top: 0;
+}
+@media (max-width: 760px) {
+  .timesheet-owner { align-items: flex-start; }
+  .timesheet-owner .selected-month { white-space: normal; }
+  .period { width: 100%; }
+  .period label { flex: 1 1 10rem; }
+}
