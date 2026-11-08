@@ -275,8 +275,29 @@ export function App({ service: suppliedService, liveContext }) {
             changeContext(() => setPage("entry"));
           }}
         >
-          <img className="brand-logo" src="/Banner%20logo%20sign%20in%20page.png" alt="Ripple Effect" /><span>TIMESHEETS</span>
+          <img className="brand-logo" src="/Banner%20logo%20sign%20in%20page.png" alt="Ripple Effect" /><span>Timesheets</span>
         </a>
+      <nav aria-label="Main navigation">
+        <button
+          aria-current={page === "entry" ? "page" : undefined}
+          disabled={busy}
+          onClick={() => changeContext(() => setPage("entry"))}
+        >
+          My Timesheet
+        </button>
+        <button
+          aria-current={page === "reports" ? "page" : undefined}
+          disabled={busy || role === "staff"}
+          onClick={() => changeContext(() => setPage("reports"))}
+        >
+          Reporting
+        </button>
+        <span>
+          {liveContext
+            ? "Reports and reopening: Administrators only"
+            : "Permission policy awaits agreement"}
+        </span>
+      </nav>
         {liveContext ? (
           <div className="identity">
             <strong>{person.name}</strong>
@@ -324,27 +345,7 @@ export function App({ service: suppliedService, liveContext }) {
           </div>
         )}
       </header>
-      <nav aria-label="Main navigation">
-        <button
-          aria-current={page === "entry" ? "page" : undefined}
-          disabled={busy}
-          onClick={() => changeContext(() => setPage("entry"))}
-        >
-          My Timesheet
-        </button>
-        <button
-          aria-current={page === "reports" ? "page" : undefined}
-          disabled={busy || role === "staff"}
-          onClick={() => changeContext(() => setPage("reports"))}
-        >
-          Reporting
-        </button>
-        <span>
-          {liveContext
-            ? "Reports and reopening: Administrators only"
-            : "Permission policy awaits agreement"}
-        </span>
-      </nav>
+
       <main>
         {error && (
           <div className="notice error" role="alert">
@@ -360,7 +361,6 @@ export function App({ service: suppliedService, liveContext }) {
           <>
             <div className="page-heading">
               <div>
-                <p className="eyebrow">YOUR CONTRIBUTION, TOGETHER</p>
                 <h1>My Timesheet</h1>
                 <div
                   className="timesheet-owner"
@@ -380,10 +380,6 @@ export function App({ service: suppliedService, liveContext }) {
                     {months[month - 1]} {year}
                   </h2>
                 </div>
-                <p>
-                  Welcome, {person.name.split(" ")[0]}. Record your time in one
-                  monthly view.
-                </p>
               </div>
               <div className="period">
                 <label>

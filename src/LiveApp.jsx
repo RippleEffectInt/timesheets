@@ -94,7 +94,7 @@ export function LiveApp() {
   if (context && service)
     return <App service={service} liveContext={context} />;
   return (
-    <main>
+    <main className="signin-page">
       <section className="card">
         <img className="signin-logo" src="/Banner%20logo%20sign%20in%20page.png" alt="Ripple Effect" />
         <h1>Timesheets</h1>
