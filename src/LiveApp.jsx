@@ -3,7 +3,7 @@ import {
   PublicClientApplication,
   InteractionRequiredAuthError,
 } from "@azure/msal-browser";
-import { establishSession, SIGNED_OUT } from "./signin.js";
+import { establishSession, redirectIfNeeded, SIGNED_OUT } from "./signin.js";
 import { App } from "./App.jsx";
 const tenant = "813ee105-1291-48e6-9381-e535253a68be";
 const scopes = ["api://54b64b90-4ca1-463b-8290-8b285d5df68c/access_as_user"];
@@ -27,6 +27,7 @@ const initialized = client
       return;
     }
     await establishSession(client, scopes, sessionStorage);
+    await redirectIfNeeded(client, scopes, sessionStorage);
   });
 
 export function LiveApp() {
@@ -90,7 +91,7 @@ export function LiveApp() {
       });
       setContext({ ...data, logout: () => { sessionStorage.setItem(SIGNED_OUT, "true"); return client.logoutRedirect(); } });
     }
-    start().catch((e) => active && setError(e.message));
+    start().catch((e) => { if(active) { setReady(true); setError("Microsoft sign-in did not complete. Please use the sign-in button to try again."); } });
     return () => {
       active = false;
     };

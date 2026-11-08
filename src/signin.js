@@ -13,3 +13,18 @@ export async function establishSession(client, scopes, storage) {
   } catch { /* MFA, cookie restrictions or no session: show the normal sign-in button. */ }
   return null;
 }
+
+export const AUTO_REDIRECT_ATTEMPTED = 'timesheets-auto-redirect-attempted';
+/** Persist before leaving the page; returning or refreshing cannot restart the redirect. */
+export async function redirectIfNeeded(client, scopes, storage) {
+  if(client.getActiveAccount() || client.getAllAccounts().length > 1) return false;
+  try {
+    if(storage.getItem(SIGNED_OUT)==='true' || storage.getItem(AUTO_REDIRECT_ATTEMPTED)==='true') return false;
+    storage.setItem(AUTO_REDIRECT_ATTEMPTED,'true');
+  } catch { return false; } // Without reliable storage, require an explicit click.
+  try {
+    // No select_account prompt: reuse the work session when Microsoft permits it.
+    await client.loginRedirect({scopes});
+    return true;
+  } catch { return false; } // Keep the guard and offer the manual button.
+}
