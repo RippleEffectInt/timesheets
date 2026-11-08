@@ -35,7 +35,9 @@ function worksheet(rows) {
   );
 }
 /** Minimal standards-based OOXML workbook, ZIP compressed with fflate; no Excel import support. */
-export async function createWorkbook(rows, filters) {
+export const loggedRows = (rows) => rows.filter(row => Number.isFinite(row.hours) && row.hours > 0);
+export async function createWorkbook(rows, filters, {demo = true} = {}) {
+  const includedRows = loggedRows(rows);
   const columns = [
     ["Staff ID", "staffId"],
     ["Staff", "staff"],
@@ -54,12 +56,12 @@ export async function createWorkbook(rows, filters) {
   const sheets = [
     [
       columns.map((c) => c[0]),
-      ...rows.map((row) => columns.map((c) => row[c[1]])),
+      ...includedRows.map((row) => columns.map((c) => row[c[1]])),
     ],
     [
-      ["Ripple Effect Timesheets — FICTIONAL DEMO DATA"],
-      ["No live identity or privacy enforcement."],
-      ["Blank hours mean not entered; 0 means explicitly zero."],
+      [demo ? "Ripple Effect Timesheets — FICTIONAL DEMO DATA" : "Ripple Effect Timesheets"],
+      [demo ? "Sample data; simulated permissions." : "Exported from SharePoint timesheets."],
+      ["Only rows with hours greater than zero are exported. Blank and zero-hour rows are omitted."],
       ["All statuses are included; Submitted is not approval."],
       ["Monthly notes repeat on weekly rows."],
       ["Filters", JSON.stringify(filters)],
@@ -88,8 +90,8 @@ export async function createWorkbook(rows, filters) {
     ),
   );
 }
-export async function downloadWorkbook(rows, filters) {
-  const bytes = await createWorkbook(rows, filters);
+export async function downloadWorkbook(rows, filters, options = {}) {
+  const bytes = await createWorkbook(rows, filters, options);
   const url = URL.createObjectURL(
     new Blob([bytes], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -97,7 +99,7 @@ export async function downloadWorkbook(rows, filters) {
   );
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "ripple-effect-timesheets-demo.xlsx";
+  anchor.download = `ripple-effect-${options.yeeldOnly ? "yeeld" : "timesheets"}${options.demo === false ? "" : "-demo"}.xlsx`;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

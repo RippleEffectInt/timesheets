@@ -15,7 +15,7 @@ import {
 } from "./fixtures.js";
 import { BrowserMockRepository } from "./repository.js";
 import { createService } from "./service.js";
-import { downloadWorkbook } from "./export.js";
+import { downloadWorkbook, loggedRows } from "./export.js";
 const months = Array.from({ length: 12 }, (_, i) =>
   new Date(2026, i).toLocaleString("en-GB", { month: "long" }),
 );
@@ -155,6 +155,8 @@ export function App({ service: suppliedService, liveContext }) {
     });
   const weeks = weeksForMonth(year, month);
   const rows = reportRows(records, staff, projects, filters);
+  const yeeldFilters = {...filters, projectId: YEELD_ID};
+  const yeeldRows = reportRows(records, staff, projects, yeeldFilters);
   const total = record
     ? sum(
         record.entries.flatMap((e) =>
@@ -639,20 +641,23 @@ export function App({ service: suppliedService, liveContext }) {
           <>
             <div className="page-heading">
               <div>
-                <p className="eyebrow">FICTIONAL DATA · ALL STATUSES</p>
+                <p className="eyebrow">{liveContext ? "ALL STATUSES" : "FICTIONAL DATA · ALL STATUSES"}</p>
                 <h1>Reporting</h1>
                 <p>
                   Explore recorded time. Blank cells are excluded from
                   entered-value counts.
                 </p>
               </div>
-              <button
-                className="primary"
-                disabled={busy || !rows.length}
-                onClick={() => run(() => downloadWorkbook(rows, filters))}
-              >
-                Export XLSX
-              </button>
+              <div className="actions">
+                <button disabled={busy || !loggedRows(yeeldRows).length}
+                  onClick={() => run(() => downloadWorkbook(yeeldRows, yeeldFilters, {demo: !liveContext, yeeldOnly:true}))}>
+                  Export YEELD only
+                </button>
+                <button className="primary" disabled={busy || !loggedRows(rows).length}
+                  onClick={() => run(() => downloadWorkbook(rows, filters, {demo: !liveContext}))}>
+                  Export XLSX
+                </button>
+              </div>
             </div>
             <section className="card filters">
               {[
