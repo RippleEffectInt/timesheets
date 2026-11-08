@@ -1,3 +1,5 @@
+> Historical design notes for the prototype. The implemented pilot, actual field mappings, authentication and access policy are documented in [LIVE-DEPLOYMENT.md](LIVE-DEPLOYMENT.md).
+
 # Integration contract and decisions
 
 ## Current boundary

@@ -28,6 +28,10 @@ export function createService(repository, staff, projects) {
       );
     },
     async save(principal, input, action = "save") {
+      assert(
+        input && typeof input === "object" && !Array.isArray(input),
+        "A timesheet record is required.",
+      );
       const person = owner(principal, input.staffId);
       assert(action === "save" || action === "submit", "Unsupported action.");
       const data = validateRecord(input, person, projects);

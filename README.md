@@ -1,8 +1,14 @@
 # Ripple Effect Timesheets
 
+The deployed site now uses Microsoft sign-in and a SharePoint API in a read-only integration pilot. See [live deployment and verification](docs/LIVE-DEPLOYMENT.md) before enabling writes. Local `npm run dev` retains the synthetic demo. Run `npm ci --ignore-scripts` and `npm ci --prefix api --ignore-scripts` before testing.
+
+The original prototype instructions follow; their sample-only descriptions apply to the local development demo.
+
+# Ripple Effect Timesheets
+
 **Windows preview:** start with [START-HERE-WINDOWS.md](START-HERE-WINDOWS.md). Extract directly to `$HOME\YEELD-Timesheets-Preview`; use Node 24 LTS and http://127.0.0.1:5184/.
 
-Version 0.2: Ripple Effect branding, a prominent selected-month heading, a full-width project selector, and independent thematic project notes. See **UPGRADE-WINDOWS.md** when updating an existing preview.
+Version 0.3: prominent sample identity alongside the month; Ripple Effect branding, a prominent selected-month heading, a full-width project selector, and independent thematic project notes. See **UPGRADE-WINDOWS.md** when updating an existing preview.
 
 An initial React timesheet prototype for YEELD staff and thematic coordinators, intended for a future Azure Static Web Apps frontend, Azure Functions API, and SharePoint Lists backend.
 

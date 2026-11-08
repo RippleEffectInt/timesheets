@@ -158,3 +158,42 @@ test("prominent sample identity follows staff switches and stays alongside the s
   );
   cleanup();
 });
+
+test("live connection view uses server identity and disables writes without simulated controls", async () => {
+  const repo = new MemoryRepository(),
+    service = createService(repo, staff, projects);
+  const principal = {
+    staffId: staff[0].id,
+    authenticated: true,
+    permissions: [],
+  };
+  render(
+    React.createElement(App, {
+      service,
+      liveContext: {
+        staff: [staff[0]],
+        projects,
+        principal,
+        writeEnabled: false,
+        logout: () => {},
+      },
+    }),
+  );
+  await screen.findByLabelText("YEELD monthly notes");
+  assert.equal(screen.queryByLabelText("Simulated person"), null);
+  assert.equal(screen.queryByLabelText("Simulated permission"), null);
+  assert.match(
+    screen.getByLabelText("Timesheet owner and period").textContent,
+    /Alex Rowan/,
+  );
+  assert.equal(
+    screen.getByRole("button", { name: "Save draft" }).disabled,
+    true,
+  );
+  assert.equal(
+    screen.getByRole("button", { name: "Reporting" }).disabled,
+    true,
+  );
+  assert(screen.getByText(/READ-ONLY CONNECTION CHECK/));
+  cleanup();
+});

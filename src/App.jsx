@@ -6,7 +6,11 @@ import {
   weeksForMonth,
   YEELD_ID,
 } from "./domain.js";
-import { staff, projects, seedRecords } from "./fixtures.js";
+import {
+  staff as demoStaff,
+  projects as demoProjects,
+  seedRecords,
+} from "./fixtures.js";
 import { BrowserMockRepository } from "./repository.js";
 import { createService } from "./service.js";
 import { downloadWorkbook } from "./export.js";
@@ -14,18 +18,30 @@ const months = Array.from({ length: 12 }, (_, i) =>
   new Date(2026, i).toLocaleString("en-GB", { month: "long" }),
 );
 const years = Array.from({ length: 101 }, (_, i) => 2000 + i);
-export function App({ service: suppliedService }) {
+export function App({ service: suppliedService, liveContext }) {
+  const staff = liveContext?.staff ?? demoStaff;
+  const projects = liveContext?.projects ?? demoProjects;
   const service = useMemo(
     () =>
       suppliedService ??
       createService(new BrowserMockRepository(seedRecords()), staff, projects),
     [suppliedService],
   );
-  const [staffId, setStaffId] = useState(staff[0].id);
-  const [role, setRole] = useState("staff");
+  const [staffId, setStaffId] = useState(
+    liveContext?.principal.staffId ?? staff[0].id,
+  );
+  const [role, setRole] = useState(
+    liveContext?.principal.permissions.includes("report:read")
+      ? "operator"
+      : "staff",
+  );
   const [page, setPage] = useState("entry");
-  const [month, setMonth] = useState(11);
-  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(
+    liveContext ? new Date().getMonth() + 1 : 11,
+  );
+  const [year, setYear] = useState(
+    liveContext ? new Date().getFullYear() : 2026,
+  );
   const [record, setRecord] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [message, setMessage] = useState("");
@@ -41,17 +57,18 @@ export function App({ service: suppliedService }) {
   });
   const person = staff.find((s) => s.id === staffId);
   const principal = useMemo(
-    () => ({
-      staffId,
-      authenticated: true,
-      permissions:
-        role === "reporter"
-          ? ["report:read"]
-          : role === "operator"
-            ? ["report:read", "timesheet:reopen"]
-            : [],
-    }),
-    [staffId, role],
+    () =>
+      liveContext?.principal ?? {
+        staffId,
+        authenticated: true,
+        permissions:
+          role === "reporter"
+            ? ["report:read"]
+            : role === "operator"
+              ? ["report:read", "timesheet:reopen"]
+              : [],
+      },
+    [staffId, role, liveContext],
   );
   useEffect(() => {
     let active = true;
@@ -127,7 +144,9 @@ export function App({ service: suppliedService }) {
       setMessage(
         action === "submit"
           ? "Timesheet submitted. This is a status, not manager approval."
-          : "Draft saved on this browser.",
+          : liveContext
+            ? "Draft saved to SharePoint."
+            : "Draft saved on this browser.",
       );
     });
   const weeks = weeksForMonth(year, month);
@@ -141,7 +160,10 @@ export function App({ service: suppliedService }) {
         ),
       )
     : 0;
-  const locked = busy || record?.status === "Submitted";
+  const locked =
+    (liveContext && !liveContext.writeEnabled) ||
+    busy ||
+    record?.status === "Submitted";
   const hoursTable = (entries) => (
     <div className="table-scroll">
       <table>
@@ -234,8 +256,11 @@ export function App({ service: suppliedService }) {
   return (
     <>
       <div className="demo-banner">
-        <strong>FICTIONAL DEMO</strong> · Simulated identities and permissions ·
-        Saved only in this browser · No Microsoft 365 connection
+        {liveContext
+          ? liveContext.writeEnabled
+            ? "Connected to SharePoint · Signed in with Microsoft"
+            : "READ-ONLY CONNECTION CHECK · Signed in with Microsoft · Saving is disabled"
+          : "FICTIONAL DEMO · Simulated identities and permissions · Saved only in this browser · No Microsoft 365 connection"}
       </div>
       <header>
         <a
@@ -248,39 +273,52 @@ export function App({ service: suppliedService }) {
         >
           Ripple Effect<span>TIMESHEETS</span>
         </a>
-        <div className="identity">
-          <label>
-            Simulated person
-            <select
-              disabled={busy}
-              value={staffId}
-              onChange={(e) => changeContext(() => setStaffId(e.target.value))}
-            >
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+        {liveContext ? (
+          <div className="identity">
+            <strong>{person.name}</strong>
+            <button onClick={() => changeContext(liveContext.logout)}>
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <div className="identity">
+            <label>
+              Simulated person
+              <select
+                disabled={busy}
+                value={staffId}
+                onChange={(e) =>
+                  changeContext(() => setStaffId(e.target.value))
+                }
+              >
+                {staff.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Simulated permission
+              <select
+                disabled={busy}
+                value={role}
+                onChange={(e) =>
+                  changeContext(() => {
+                    setRole(e.target.value);
+                    setPage("entry");
+                  })
+                }
+              >
+                <option value="staff">Staff: own timesheet</option>
+                <option value="reporter">Reporting demonstration</option>
+                <option value="operator">
+                  Reporting + reopen demonstration
                 </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Simulated permission
-            <select
-              disabled={busy}
-              value={role}
-              onChange={(e) =>
-                changeContext(() => {
-                  setRole(e.target.value);
-                  setPage("entry");
-                })
-              }
-            >
-              <option value="staff">Staff: own timesheet</option>
-              <option value="reporter">Reporting demonstration</option>
-              <option value="operator">Reporting + reopen demonstration</option>
-            </select>
-          </label>
-        </div>
+              </select>
+            </label>
+          </div>
+        )}
       </header>
       <nav aria-label="Main navigation">
         <button
@@ -297,7 +335,11 @@ export function App({ service: suppliedService }) {
         >
           Reporting
         </button>
-        <span>Permission policy awaits agreement</span>
+        <span>
+          {liveContext
+            ? "Reports and reopening: Administrators only"
+            : "Permission policy awaits agreement"}
+        </span>
       </nav>
       <main>
         {error && (
@@ -324,7 +366,9 @@ export function App({ service: suppliedService }) {
                 >
                   <div>
                     <span className="eyebrow">
-                      Sample identity · Timesheet for
+                      {liveContext
+                        ? "Signed in · Timesheet for"
+                        : "Sample identity · Timesheet for"}
                     </span>
                     <h2 className="owner-name">{person.name}</h2>
                   </div>
@@ -396,9 +440,9 @@ export function App({ service: suppliedService }) {
                 </p>
                 {record.status === "Submitted" && (
                   <div className="notice">
-                    This month is submitted and locked. Reopen authority is
-                    still to be agreed; the demonstration is available under
-                    simulated permissions.
+                    {liveContext
+                      ? "This month is submitted and locked. An Administrator can reopen it for corrections."
+                      : "This month is submitted and locked. Reopen authority is still to be agreed; the demonstration is available under simulated permissions."}
                   </div>
                 )}
                 {person.yeeld && (
@@ -684,10 +728,15 @@ export function App({ service: suppliedService }) {
             </section>
             {role === "operator" && (
               <section className="card">
-                <h2>Simulated reopen controls</h2>
+                <h2>
+                  {liveContext
+                    ? "Reopen submitted timesheets"
+                    : "Simulated reopen controls"}
+                </h2>
                 <p>
-                  Demonstrates the state transition only. Who may reopen real
-                  records is undecided.
+                  {liveContext
+                    ? "Reopening allows the staff member to make corrections. It is not an approval."
+                    : "Demonstrates the state transition only. Who may reopen real records is undecided."}
                 </p>
                 {records
                   .filter(
@@ -702,12 +751,18 @@ export function App({ service: suppliedService }) {
                         {months[r.month - 1]} {r.year}
                       </span>
                       <button
-                        disabled={busy}
+                        disabled={
+                          busy || (liveContext && !liveContext.writeEnabled)
+                        }
                         onClick={() =>
                           run(async () => {
                             await service.reopen(principal, r.key, r.revision);
                             setRefresh((n) => n + 1);
-                            setMessage("Demo timesheet reopened.");
+                            setMessage(
+                              liveContext
+                                ? "Timesheet reopened."
+                                : "Demo timesheet reopened.",
+                            );
                           })
                         }
                       >
@@ -720,11 +775,9 @@ export function App({ service: suppliedService }) {
           </>
         )}
         <footer>
-          Ripple Effect Timesheets · Prototype v0.3 · All names, projects and
-          hours are fictional.
-          <br />
-          Browser controls do not enforce live privacy. Production requires
-          verified server identity and access controls.
+          {liveContext
+            ? "Ripple Effect Timesheets · Microsoft sign-in · SharePoint storage"
+            : "Ripple Effect Timesheets · Prototype v0.4 · Fictional sample data. Browser controls do not enforce live privacy. Production requires verified server identity and access controls."}
         </footer>
       </main>
     </>

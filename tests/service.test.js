@@ -4,7 +4,6 @@ import { createService } from "../src/service.js";
 import { MemoryRepository, BrowserMockRepository } from "../src/repository.js";
 import { staff, projects } from "../src/fixtures.js";
 import { createApiHandler } from "../api/handler.js";
-import { SharePointRepository } from "../api/sharepoint-repository.js";
 const user = { staffId: staff[0].id, authenticated: true, permissions: [] };
 const operator = { ...user, permissions: ["report:read", "timesheet:reopen"] };
 const setup = () => {
@@ -110,7 +109,7 @@ test("API defaults fail closed and forged identity in a request cannot grant acc
     ).status,
     403,
   );
-  await assert.rejects(new SharePointRepository().list(), /not configured/);
+  assert.equal((await handler(new Request("https://example.invalid/api/my-timesheet", {method:"PUT",body:"{}"}))).status,400);
 });
 
 test("v1 browser drafts migrate losslessly; independent project notes survive save, submit and reopen", async () => {

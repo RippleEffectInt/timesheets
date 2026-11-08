@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { LiveApp } from "./LiveApp.jsx";
 import { App } from "./App.jsx";
 import "./styles.css";
 class ErrorBoundary extends React.Component {
@@ -10,11 +11,10 @@ class ErrorBoundary extends React.Component {
   render() {
     return this.state.error ? (
       <main>
-        <h1>Demo could not load</h1>
+        <h1>Timesheets could not load</h1>
         <p>
-          Browser storage may be unavailable or contain incompatible demo data.
-          Use a fresh browser profile or clear this app’s demo storage, then
-          reload.
+          Please reload the page. If the problem continues, contact your
+          administrator.
         </p>
       </main>
     ) : (
@@ -23,7 +23,5 @@ class ErrorBoundary extends React.Component {
   }
 }
 createRoot(document.getElementById("root")).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>,
+  <ErrorBoundary>{import.meta.env.DEV ? <App /> : <LiveApp />}</ErrorBoundary>,
 );
