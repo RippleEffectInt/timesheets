@@ -197,3 +197,47 @@ test("live connection view uses server identity and disables writes without simu
   assert(screen.getByText(/READ-ONLY CONNECTION CHECK/));
   cleanup();
 });
+
+test("live financial-year selector keeps July–June period when month changes", async () => {
+  const service = createService(new MemoryRepository(), staff, projects);
+  render(
+    React.createElement(App, {
+      service,
+      liveContext: {
+        staff: [staff[0]],
+        projects,
+        principal: {
+          staffId: staff[0].id,
+          authenticated: true,
+          permissions: [],
+        },
+        writeEnabled: false,
+        financialYears: ["26/27", "27/28"],
+        logout: () => {},
+      },
+    }),
+  );
+  await screen.findByLabelText("YEELD monthly notes");
+  fireEvent.change(screen.getByLabelText("Financial year (July–June)"), {
+    target: { value: "26/27" },
+  });
+  fireEvent.change(screen.getByLabelText("Month"), { target: { value: "6" } });
+  await waitFor(() =>
+    assert.match(
+      screen.getByLabelText("Timesheet owner and period").textContent,
+      /June 2027/,
+    ),
+  );
+  fireEvent.change(screen.getByLabelText("Month"), { target: { value: "7" } });
+  await waitFor(() =>
+    assert.match(
+      screen.getByLabelText("Timesheet owner and period").textContent,
+      /July 2026/,
+    ),
+  );
+  assert.equal(
+    screen.getByLabelText("Financial year (July–June)").value,
+    "26/27",
+  );
+  cleanup();
+});

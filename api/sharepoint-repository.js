@@ -1,5 +1,12 @@
 import { HttpError, TENANT } from "./config.js";
-import { YEELD_ID, periodKey, migrateRecord } from "./shared/domain.js";
+import {
+  YEELD_ID,
+  periodKey,
+  migrateRecord,
+  financialYear,
+  financialStart,
+  calendarYear,
+} from "./shared/domain.js";
 const fail = (message) => {
   throw new HttpError(503, message);
 };
@@ -152,8 +159,15 @@ export async function inspectSchema(graph) {
     fail(
       "Weekly Entries JSON must be plain multiple-line text without append changes.",
     );
-  if (!t.Reporting_x0020_Year.number)
-    fail("Reporting Year must be a Number column.");
+  if (t.Reporting_x0020_Year.choice) {
+    const choices = t.Reporting_x0020_Year.choice.choices;
+    if (!choices?.length)
+      fail("Reporting Year requires financial-year choices.");
+    for (const value of choices) financialStart(value);
+  } else if (!t.Reporting_x0020_Year.number)
+    fail(
+      "Reporting Year must be financial-year choices or a legacy Number column.",
+    );
   if (!t.field_2.number && !t.field_2.choice && !t.field_2.text)
     fail("Reporting Month must be a Number, Choice or Text column.");
   if (!t.StaffMember.text && !t.StaffMember.personOrGroup)
@@ -198,11 +212,15 @@ export function decodeItem(item) {
     fail(
       "A saved timesheet uses an unsupported JSON format. No data has been changed.",
     );
-  const year = Number(f.Reporting_x0020_Year),
-    raw = f.field_2;
+  const raw = f.field_2;
   const month = monthNames.includes(raw)
     ? monthNames.indexOf(raw) + 1
     : Number(raw);
+  const year =
+    typeof f.Reporting_x0020_Year === "string" &&
+    f.Reporting_x0020_Year.includes("/")
+      ? calendarYear(f.Reporting_x0020_Year, month)
+      : Number(f.Reporting_x0020_Year);
   const staffId = text(f.field_11),
     key = `${staffId}:${periodKey(year, month)}`;
   if (
@@ -265,7 +283,11 @@ export function createSharePointRepository(
       const fields = {
         Title: person.email,
         field_2: monthValue(record.month, schema.field_2),
-        Reporting_x0020_Year: record.year,
+        Reporting_x0020_Year: reportingYearValue(
+          record.year,
+          record.month,
+          schema.Reporting_x0020_Year,
+        ),
         field_4: record.key,
         field_5: record.status,
         field_6: JSON.stringify({
@@ -317,4 +339,14 @@ export function publicStaff(person) {
     yeeld: person.yeeld,
     thematic: person.thematic,
   };
+}
+
+export function reportingYearValue(year, month, column) {
+  if (column?.choice) {
+    const value = financialYear(year, month);
+    if (!column.choice.choices.includes(value))
+      fail("This financial year is not configured in SharePoint.");
+    return value;
+  }
+  return year;
 }

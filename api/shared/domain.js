@@ -190,6 +190,8 @@ export function reportRows(records, staff, projects, filters = {}) {
     .filter(
       (r) =>
         (!filters.year || r.year === Number(filters.year)) &&
+        (!filters.financialYear ||
+          financialYear(r.year, r.month) === filters.financialYear) &&
         (!filters.month || r.month === Number(filters.month)) &&
         (!filters.staffId || r.staffId === filters.staffId),
     )
@@ -205,6 +207,7 @@ export function reportRows(records, staff, projects, filters = {}) {
             project:
               projects.find((p) => p.id === e.projectId)?.name ?? e.projectId,
             year: r.year,
+            financialYear: financialYear(r.year, r.month),
             month: r.month,
             weekStart: w.start,
             weekEnd: w.end,
@@ -216,4 +219,28 @@ export function reportRows(records, staff, projects, filters = {}) {
           })),
         ),
     );
+}
+
+/** Financial years run July–June; persisted keys remain calendar YYYY-MM. */
+export function financialYear(year, month) {
+  periodKey(year, month);
+  const start = year - (month < 7 ? 1 : 0);
+  return `${String(start % 100).padStart(2, "0")}/${String((start + 1) % 100).padStart(2, "0")}`;
+}
+export function financialStart(value) {
+  assert(
+    typeof value === "string" && /^\d{2}\/\d{2}$/.test(value),
+    "Invalid financial year.",
+  );
+  const start = 2000 + Number(value.slice(0, 2));
+  assert(
+    Number(value.slice(3)) === (start + 1) % 100,
+    "Financial year must contain consecutive years.",
+  );
+  return start;
+}
+export function calendarYear(value, month) {
+  const year = financialStart(value) + (month < 7 ? 1 : 0);
+  periodKey(year, month);
+  return year;
 }

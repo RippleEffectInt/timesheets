@@ -41,7 +41,7 @@ export async function createWorkbook(rows, filters) {
     ["Staff", "staff"],
     ["Project ID", "projectId"],
     ["Project", "project"],
-    ["Year", "year"],
+    ["Calendar year", "year"],
     ["Month", "month"],
     ["Week start", "weekStart"],
     ["Week end", "weekEnd"],
@@ -49,6 +49,7 @@ export async function createWorkbook(rows, filters) {
     ["Status", "status"],
     ["Project monthly notes", "notes"],
     ["Previous shared thematic notes", "legacyThematicNotes"],
+    ["Financial year (July–June)", "financialYear"],
   ];
   const sheets = [
     [

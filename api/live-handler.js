@@ -86,6 +86,8 @@ export function createLiveHandler({
           ).map(publicStaff),
           projects,
           writeEnabled,
+          financialYears:
+            schemas.timesheets.Reporting_x0020_Year.choice?.choices ?? null,
         });
       const repository = createSharePointRepository(
         graph,

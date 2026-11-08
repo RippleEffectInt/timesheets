@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   availableProjects,
+  financialYear,
+  calendarYear,
   reportRows,
   sum,
   weeksForMonth,
@@ -19,6 +21,7 @@ const months = Array.from({ length: 12 }, (_, i) =>
 );
 const years = Array.from({ length: 101 }, (_, i) => 2000 + i);
 export function App({ service: suppliedService, liveContext }) {
+  const fiscalYears = liveContext?.financialYears;
   const staff = liveContext?.staff ?? demoStaff;
   const projects = liveContext?.projects ?? demoProjects;
   const service = useMemo(
@@ -51,7 +54,8 @@ export function App({ service: suppliedService, liveContext }) {
   const [records, setRecords] = useState([]);
   const [filters, setFilters] = useState({
     month: "11",
-    year: "2026",
+    year: fiscalYears ? "" : "2026",
+    financialYear: fiscalYears ? financialYear(year, month) : "",
     staffId: "",
     projectId: "",
   });
@@ -388,7 +392,14 @@ export function App({ service: suppliedService, liveContext }) {
                     disabled={busy}
                     value={month}
                     onChange={(e) =>
-                      changeContext(() => setMonth(Number(e.target.value)))
+                      changeContext(() => {
+                        const next = Number(e.target.value);
+                        if (fiscalYears)
+                          setYear(
+                            calendarYear(financialYear(year, month), next),
+                          );
+                        setMonth(next);
+                      })
                     }
                   >
                     {months.map((m, i) => (
@@ -399,15 +410,21 @@ export function App({ service: suppliedService, liveContext }) {
                   </select>
                 </label>
                 <label>
-                  Year
+                  {fiscalYears ? "Financial year (July–June)" : "Year"}
                   <select
                     disabled={busy}
-                    value={year}
+                    value={fiscalYears ? financialYear(year, month) : year}
                     onChange={(e) =>
-                      changeContext(() => setYear(Number(e.target.value)))
+                      changeContext(() =>
+                        setYear(
+                          fiscalYears
+                            ? calendarYear(e.target.value, month)
+                            : Number(e.target.value),
+                        ),
+                      )
                     }
                   >
-                    {years.map((y) => (
+                    {(fiscalYears ?? years).map((y) => (
                       <option key={y}>{y}</option>
                     ))}
                   </select>
@@ -644,7 +661,13 @@ export function App({ service: suppliedService, liveContext }) {
             <section className="card filters">
               {[
                 ["month", "Month", months.map((m, i) => [String(i + 1), m])],
-                ["year", "Year", years.map((y) => [String(y), y])],
+                fiscalYears
+                  ? [
+                      "financialYear",
+                      "Financial year (July–June)",
+                      fiscalYears.map((y) => [y, y]),
+                    ]
+                  : ["year", "Year", years.map((y) => [String(y), y])],
                 ["projectId", "Project", projects.map((p) => [p.id, p.name])],
                 ["staffId", "Staff", staff.map((s) => [s.id, s.name])],
               ].map(([key, label, options]) => (
