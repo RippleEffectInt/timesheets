@@ -1,0 +1,27 @@
+{
+  "name": "ripple-effect-timesheets",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5184 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5184 --strictPort",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "fflate": "0.8.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.0",
+    "esbuild": "0.25.12",
+    "jsdom": "27.2.0",
+    "prettier": "3.6.2",
+    "vite": "7.3.7"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
