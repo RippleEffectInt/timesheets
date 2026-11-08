@@ -1,13 +1,16 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { jwtVerify } from "jose";
+import { createSigningKeys } from "./signing-keys.js";
 import { TENANT, CLIENT, SPA, HttpError } from "./config.js";
-const keys = createRemoteJWKSet(
-  new URL(`https://login.microsoftonline.com/${TENANT}/discovery/v2.0/keys`),
-);
+const keys = createSigningKeys();
 export async function authenticate(request, keySet = keys) {
   const authorization = request.headers.get("authorization") ?? "";
   if (!/^Bearer [^\s]+$/i.test(authorization))
     throw new HttpError(401, "Sign in with your Ripple Effect account.");
   try {
+    if (!globalThis.crypto?.subtle)
+      throw Object.assign(new Error("WebCrypto unavailable"), {
+        code: "AUTH_CRYPTO_UNAVAILABLE",
+      });
     const { payload: p } = await jwtVerify(authorization.slice(7), keySet, {
       algorithms: ["RS256"],
       issuer: [
@@ -59,6 +62,25 @@ export async function authenticate(request, keySet = keys) {
           }[error.claim] ?? "AUTH_REQUIRED_CLAIM")
         : ({
             ERR_JWT_EXPIRED: "AUTH_EXPIRED",
+            ERR_JWS_INVALID: "AUTH_TOKEN_FORMAT",
+            ERR_JWT_INVALID: "AUTH_TOKEN_FORMAT",
+            ERR_JOSE_ALG_NOT_ALLOWED: "AUTH_ALGORITHM",
+            ERR_JOSE_NOT_SUPPORTED: "AUTH_UNSUPPORTED",
+            ERR_JWK_INVALID: "AUTH_KEY_INVALID",
+            ERR_JWKS_INVALID: "AUTH_KEYS_FORMAT",
+            ERR_JWKS_MULTIPLE_MATCHING_KEYS: "AUTH_KEY_AMBIGUOUS",
+            ERR_JOSE_GENERIC: "AUTH_KEY_RESPONSE",
+            AUTH_CRYPTO_UNAVAILABLE: "AUTH_CRYPTO_UNAVAILABLE",
+            AUTH_KEYS_DNS: "AUTH_KEYS_DNS",
+            AUTH_KEYS_TLS: "AUTH_KEYS_TLS",
+            AUTH_KEYS_TIMEOUT: "AUTH_KEYS_TIMEOUT",
+            AUTH_KEYS_NETWORK: "AUTH_KEYS_NETWORK",
+            AUTH_KEYS_ADDRESS: "AUTH_KEYS_ADDRESS",
+            AUTH_KEYS_FORBIDDEN: "AUTH_KEYS_FORBIDDEN",
+            AUTH_KEYS_THROTTLED: "AUTH_KEYS_THROTTLED",
+            AUTH_KEYS_HTTP: "AUTH_KEYS_HTTP",
+            AUTH_KEYS_JSON: "AUTH_KEYS_JSON",
+            AUTH_KEYS_FORMAT: "AUTH_KEYS_FORMAT",
             ERR_JWS_SIGNATURE_VERIFICATION_FAILED: "AUTH_SIGNATURE",
             ERR_JWKS_TIMEOUT: "AUTH_KEYS_TIMEOUT",
             ERR_JWKS_NO_MATCHING_KEY: "AUTH_KEY_NOT_FOUND",
@@ -69,7 +91,15 @@ export async function authenticate(request, keySet = keys) {
             AUTH_CLIENT: "AUTH_CLIENT",
             AUTH_SCOPE: "AUTH_SCOPE",
             AUTH_IDENTITY: "AUTH_IDENTITY",
-          }[error.code] ?? "AUTH_VERIFICATION");
+          }[error.code] ??
+          {
+            ReferenceError: "AUTH_RUNTIME_REFERENCE",
+            TypeError: "AUTH_RUNTIME_TYPE",
+            NotSupportedError: "AUTH_CRYPTO_UNSUPPORTED",
+            DataError: "AUTH_CRYPTO_DATA",
+            OperationError: "AUTH_CRYPTO_OPERATION",
+          }[error.name] ??
+          "AUTH_VERIFICATION");
     throw new HttpError(
       401,
       `Your sign-in could not be verified (${code}). Please report this code to your administrator.`,

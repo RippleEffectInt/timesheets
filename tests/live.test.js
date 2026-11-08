@@ -409,3 +409,101 @@ test("v1 accepts both documented API audience forms and rejects other APIs", asy
       });
   }
 });
+
+test("remote Microsoft signing-key path verifies signatures and returns only safe failure categories", async () => {
+  const { createSigningKeys } = await import("../api/signing-keys.js");
+  const { exportJWK } = await import(
+    "../api/node_modules/jose/dist/webapi/index.js"
+  );
+  const { privateKey, publicKey } = await generateKeyPair("RS256");
+  const jwk = {
+    ...(await exportJWK(publicKey)),
+    kid: "synthetic-key",
+    use: "sig",
+    alg: "RS256",
+  };
+  const token = await new SignJWT({
+    oid,
+    tid: TENANT,
+    scp: "access_as_user",
+    azp: SPA,
+    ver: "2.0",
+  })
+    .setProtectedHeader({ alg: "RS256", kid: "synthetic-key" })
+    .setIssuer(`https://login.microsoftonline.com/${TENANT}/v2.0`)
+    .setAudience(CLIENT)
+    .setIssuedAt()
+    .setNotBefore("0s")
+    .setExpirationTime("2m")
+    .sign(privateKey);
+  const req = () =>
+    new Request("https://example.invalid", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  let calls = 0;
+  const resolver = createSigningKeys(async (url, options) => {
+    calls++;
+    assert.equal(
+      url,
+      `https://login.microsoftonline.com/${TENANT}/discovery/v2.0/keys`,
+    );
+    assert.equal(new Headers(options.headers).get("authorization"), null);
+    return Response.json({ keys: [jwk] });
+  });
+  assert.deepEqual(await authenticate(req(), resolver), { oid, tid: TENANT });
+  await authenticate(req(), resolver);
+  assert.equal(calls, 1);
+  const failures = [
+    [
+      async () => new Response("private response", { status: 403 }),
+      "AUTH_KEYS_FORBIDDEN",
+    ],
+    [
+      async () => new Response("private response", { status: 500 }),
+      "AUTH_KEYS_HTTP",
+    ],
+    [async () => new Response("private response"), "AUTH_KEYS_JSON"],
+    [async () => Response.json({ keys: [] }), "AUTH_KEYS_FORMAT"],
+    [
+      async () => {
+        throw Object.assign(new TypeError("private response"), {
+          cause: { code: "ENOTFOUND" },
+        });
+      },
+      "AUTH_KEYS_DNS",
+    ],
+    [
+      async () => {
+        throw Object.assign(new TypeError("private response"), {
+          cause: { code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE" },
+        });
+      },
+      "AUTH_KEYS_TLS",
+    ],
+    [
+      async () => {
+        throw new TypeError("private response");
+      },
+      "AUTH_KEYS_NETWORK",
+    ],
+  ];
+  for (const [fetcher, code] of failures)
+    await assert.rejects(
+      () => authenticate(req(), createSigningKeys(fetcher)),
+      (e) =>
+        e.status === 401 &&
+        e.message.includes(code) &&
+        !e.message.includes("private response") &&
+        !e.message.includes(token),
+    );
+  await assert.rejects(
+    () =>
+      authenticate(
+        new Request("https://example.invalid", {
+          headers: { Authorization: "Bearer not-a-jwt" },
+        }),
+        resolver,
+      ),
+    (e) => e.message.includes("AUTH_TOKEN_FORMAT"),
+  );
+});
