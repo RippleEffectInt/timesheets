@@ -373,3 +373,39 @@ test("bootstrap returns only own profile; schema is verified; forged writes neve
   assert.equal(writes, 0);
   assert.equal(reads, 1);
 });
+
+test("v1 accepts both documented API audience forms and rejects other APIs", async () => {
+  const { privateKey, publicKey } = await generateKeyPair("RS256");
+  for (const audience of [CLIENT, `api://${CLIENT}`, "another-api"]) {
+    const token = await new SignJWT({
+      oid,
+      tid: TENANT,
+      scp: "access_as_user",
+      appid: SPA,
+      ver: "1.0",
+    })
+      .setProtectedHeader({ alg: "RS256" })
+      .setIssuer(`https://sts.windows.net/${TENANT}/`)
+      .setAudience(audience)
+      .setIssuedAt()
+      .setNotBefore("0s")
+      .setExpirationTime("2m")
+      .sign(privateKey);
+    const request = new Request("https://example.invalid", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (audience === "another-api")
+      await assert.rejects(
+        () => authenticate(request, publicKey),
+        (e) =>
+          e.status === 401 &&
+          e.message.includes("AUTH_AUDIENCE") &&
+          !e.message.includes(token),
+      );
+    else
+      assert.deepEqual(await authenticate(request, publicKey), {
+        oid,
+        tid: TENANT,
+      });
+  }
+});

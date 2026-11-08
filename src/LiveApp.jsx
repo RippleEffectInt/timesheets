@@ -117,7 +117,7 @@ export function LiveApp() {
         >
           {ready ? "Sign in with Microsoft" : "Preparing sign-in…"}
         </button>
-        {ready && client.getActiveAccount() && (
+        {ready && !error && client.getActiveAccount() && (
           <p>Checking your staff registration and SharePoint connection…</p>
         )}
       </section>
